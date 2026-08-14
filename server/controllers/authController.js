@@ -1,3 +1,4 @@
+
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { User } from "../models/index.js";
@@ -49,7 +50,6 @@ const registerUser = async (req, res) => {
     }
 };
 
-
 // ===============================
 // LOGIN
 // ===============================
@@ -90,7 +90,7 @@ const loginUser = async (req, res) => {
                 id: user.id,
                 username: user.username
             },
-            process.env.JWT_SECRET || "eventify_secret_key",
+            process.env.JWT_SECRET,
             {
                 expiresIn: "1d"
             }
@@ -113,8 +113,12 @@ const loginUser = async (req, res) => {
     }
 };
 
+// ===============================
+// EXPORT
+// ===============================
 
 export {
     registerUser,
     loginUser
 };
+
