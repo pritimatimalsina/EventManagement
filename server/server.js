@@ -1,3 +1,4 @@
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -25,7 +26,7 @@ const __dirname = path.dirname(__filename);
 
 app.use(
     cors({
-        origin: "http://localhost:5173",
+        origin: process.env.CLIENT_URL || "http://localhost:5173",
         credentials: true
     })
 );
@@ -39,10 +40,26 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
     "/images",
-    express.static(
-        path.join(__dirname, "images")
-    )
+    express.static(path.join(__dirname, "images"))
 );
+
+// ===============================
+// DATABASE CONNECTION
+// ===============================
+
+let databaseReady = false;
+
+async function connectDatabase() {
+    if (databaseReady) return;
+
+    await sequelize.authenticate();
+    await sequelize.sync();
+
+    databaseReady = true;
+
+    console.log("Database connected successfully!");
+    console.log("Database tables created successfully!");
+}
 
 // ===============================
 // ROUTES
@@ -58,44 +75,40 @@ app.use("/api/attendees", attendeeRoutes);
 // HOME
 // ===============================
 
-app.get("/", (req, res) => {
-    res.json({
-        message: "Eventify API is running successfully."
-    });
+app.get("/", async (req, res) => {
+    try {
+        await connectDatabase();
+
+        res.json({
+            message: "Eventify API is running successfully."
+        });
+    } catch (error) {
+        console.error("Database connection error:", error);
+
+        res.status(500).json({
+            message: "Database connection failed."
+        });
+    }
 });
 
 // ===============================
-// SERVER
+// DATABASE INITIALIZATION
 // ===============================
 
-const PORT = process.env.PORT || 5000;
-
-async function startServer() {
+app.use(async (req, res, next) => {
     try {
-        await sequelize.authenticate();
-
-        console.log(
-            "Database connected successfully!"
-        );
-
-        await sequelize.sync();
-
-        console.log(
-            "Database tables created successfully!"
-        );
-
-        app.listen(PORT, () => {
-            console.log(
-                `Server running on http://localhost:${PORT}`
-            );
-        });
-
+        await connectDatabase();
+        next();
     } catch (error) {
-        console.error(
-            "Unable to start server:",
-            error
-        );
-    }
-}
+        console.error("Unable to connect to database:", error);
 
-startServer();
+        res.status(500).json({
+            message: "Unable to connect to database."
+        });
+    }
+});
+
+
+
+
+
